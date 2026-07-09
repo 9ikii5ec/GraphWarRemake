@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>GraphWar Remake — Math-Powered Artillery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        /* =================== RESET & BASE =================== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #121214;
+            --bg-light: #1a1a1e;
+            --surface: #1e1e22;
+            --surface-light: #28282e;
+            --border: #3a3a42;
+            --text: #e0e0e6;
+            --text-dim: #8a8a96;
+            --neon-green: #00ff88;
+            --neon-blue: #00b4ff;
+            --neon-red: #ff3355;
+            --neon-yellow: #ffcc00;
+            --glow-green: 0 0 20px rgba(0,255,136,0.3), 0 0 40px rgba(0,255,136,0.1);
+            --glow-blue: 0 0 20px rgba(0,180,255,0.3), 0 0 40px rgba(0,180,255,0.1);
+            --glass: rgba(30,30,34,0.7);
+            --glass-border: rgba(255,255,255,0.08);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* =================== GRID BACKGROUND =================== */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.06;
+            background-image:
+                linear-gradient(var(--text) 1px, transparent 1px),
+                linear-gradient(90deg, var(--text) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.04; }
+            50% { opacity: 0.08; }
+        }
+
+        .hex-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='52'%3E%3Cpath d='M30 0L60 15v22L30 52 0 37V15z' fill='none' stroke='%2300ff88' stroke-width='0.5'/%3E%3C/svg%3E");
+            background-size: 60px 52px;
+        }
+
+        /* =================== HEADER / NAV =================== */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: rgba(18,18,20,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--neon-green);
+            text-decoration: none;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--neon-green);
+            text-shadow: var(--glow-green);
+        }
+
+        .nav-play {
+            padding: 8px 20px;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .nav-play:hover {
+            background: var(--neon-green);
+            color: var(--bg);
+            box-shadow: var(--glow-green);
+        }
+
+        /* =================== HERO SECTION =================== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 40px 80px;
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border: 1px solid var(--neon-green);
+            border-radius: 2px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--neon-green);
+            margin-bottom: 32px;
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .hero h1 {
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: 700;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text) 0%, var(--neon-green) 50%, var(--neon-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 16px;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-bottom: 48px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .hero-formula-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 20px;
+        }
+
+        .hero-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: rgba(18,18,20,0.6);
+            border: 1px solid rgba(0,180,255,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .hero-canvas-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .hero-canvas-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 12px 20px;
+            font-size: 18px;
+            color: var(--neon-blue);
+            font-family: 'JetBrains Mono', monospace;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(0,180,255,0.4);
+            letter-spacing: 1px;
+        }
+
+        .hero-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hero-formula-input {
+            flex: 1;
+            padding: 12px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--neon-green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .hero-formula-input::placeholder { color: var(--text-dim); opacity: 0.5; }
+
+        .hero-formula-input:focus {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 12px rgba(0,255,136,0.15);
+        }
+
+        .hero-draw-btn {
+            padding: 12px 24px;
+            background: var(--neon-green);
+            color: var(--bg);
+            border: none;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .hero-draw-btn:hover {
+            box-shadow: var(--glow-green);
+            transform: translateY(-1px);
+        }
+
+        .hero-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .hero-preset-chip {
+            padding: 6px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .hero-preset-chip:hover {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            background: rgba(0,180,255,0.08);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn-hero {
+            padding: 14px 32px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .btn-hero.primary {
+            background: var(--neon-green);
+            color: var(--bg);
+        }
+
+        .btn-hero.primary:hover {
+            box-shadow: var(--glow-green);
+            transform: translateY(-2px);
+        }
+
+        .btn-hero.secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-hero.secondary:hover {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        /* =================== SCREENS SHOWCASE =================== */
+        .showcase {
+            padding: 100px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .section-header .accent { color: var(--neon-green); }
+
+        .section-header p {
+            color: var(--text-dim);
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .screen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        @media (max-width: 900px) {
+            .screen-grid { grid-template-columns: 1fr; }
+        }
+
+        .screen-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.4s, border-color 0.4s, box-shadow 0.4s;
+        }
+
+        .screen-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--neon-green);
+            box-shadow: 0 8px 32px rgba(0,255,136,0.1);
+        }
+
+        .screen-card .screen-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--neon-green);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .screen-card .screen-label .dot {
+            width: 6px; height: 6px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: dotBlink 2s infinite;
+        }
+
+        @keyframes dotBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .screen-mockup {
+            aspect-ratio: 16/10;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* =================== GAME SCREEN MOCKUP (3D) =================== */
+        .game-mockup {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 9px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        .mockup-header .menu-icon {
+            width: 16px; height: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .mockup-header .menu-icon span {
+            display: block;
+            width: 100%;
+            height: 1px;
+            background: var(--neon-green);
+        }
+
+        .mockup-players {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .mockup-players .player {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 8px;
+            color: var(--text-dim);
+        }
+
+        .mockup-players .player.active { color: var(--neon-green); }
+        .mockup-players .player .dot {
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+        .mockup-players .player.active .dot { background: var(--neon-green); }
+
+        /* 3D Arena Container */
+        .arena-3d-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .arena-3d-scene {
+            width: 100%;
+            height: 100%;
+            perspective: 600px;
+            perspective-origin: 50% 45%;
+            position: relative;
+        }
+
+        .arena-3d-box {
+            position: absolute;
+            top: 8%; left: 8%;
+            width: 84%; height: 84%;
+            transform-style: preserve-3d;
+            transform: rotateX(12deg) rotateY(-8deg);
+        }
+
+        /* 3D Room Faces */
+        .room-face {
+            position: absolute;
+            backface-visibility: hidden;
+        }
+
+        .room-floor {
+            width: 100%; height: 100%;
+            bottom: 0;
+            transform-origin: bottom center;
+            transform: rotateX(90deg) translateZ(0px);
+            background:
+                linear-gradient(rgba(0,255,136,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,136,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            border: 1px solid rgba(0,255,136,0.1);
+        }
+
+        .room-back {
+            width: 100%; height: 100%;
+            background:
+                linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            border: 1px solid rgba(0,255,136,0.08);
+        }
+
+        .room-left {
+            width: 100%; height: 100%;
+            top: 0; left: 0;
+            transform-origin: left center;
+            transform: rotateY(90deg);
+            background:
+                linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            border: 1px solid rgba(0,255,136,0.06);
+            opacity: 0.7;
+        }
+
+        .room-right {
+            width: 100%; height: 100%;
+            top: 0; right: 0;
+            transform-origin: right center;
+            transform: rotateY(-90deg);
+            background:
+                linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            border: 1px solid rgba(0,255,136,0.06);
+            opacity: 0.7;
+        }
+
+        .room-ceiling {
+            width: 100%; height: 100%;
+            top: 0;
+            transform-origin: top center;
+            transform: rotateX(-90deg) translateZ(0px);
+            background:
+                linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+            border: 1px solid rgba(0,255,136,0.05);
+            opacity: 0.5;
+        }
+
+        /* Wireframe edges of the room */
+        .room-edges {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .room-edges svg {
+            width: 100%; height: 100%;
+        }
+
+        .room-edges line {
+            stroke: rgba(0,255,136,0.15);
+            stroke-width: 1;
+        }
+
+        /* 3D Coordinate Axes */
+        .axes-3d {
+            position: absolute;
+            bottom: 12%;
+            left: 15%;
+            transform-style: preserve-3d;
+        }
+
+        .axis-line {
+            position: absolute;
+            height: 1px;
+            transform-origin: left center;
+        }
+
+        .axis-x-line {
+            width: 60px;
+            background: var(--neon-red);
+            transform: rotateZ(0deg);
+            bottom: 0; left: 0;
+        }
+
+        .axis-y-line {
+            width: 50px;
+            background: var(--neon-green);
+            transform: rotateZ(-70deg);
+            bottom: 0; left: 0;
+        }
+
+        .axis-z-line {
+            width: 40px;
+            background: var(--neon-blue);
+            transform: rotateZ(-35deg) rotateY(30deg);
+            bottom: 0; left: 0;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 8px;
+            font-weight: 600;
+        }
+
+        .axis-label.x { color: var(--neon-red); bottom: -2px; left: 62px; }
+        .axis-label.y { color: var(--neon-green); bottom: 42px; left: -4px; }
+        .axis-label.z { color: var(--neon-blue); bottom: 18px; left: 42px; }
+
+        .axis-tick {
+            position: absolute;
+            font-size: 6px;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        /* 3D Player Spheres */
+        .sphere-3d {
+            position: absolute;
+            border-radius: 50%;
+            transform-style: preserve-3d;
+        }
+
+        .sphere-3d .sphere-body {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1.5px solid rgba(0,255,136,0.5);
+            background: radial-gradient(circle at 30% 30%, rgba(0,255,136,0.25), rgba(0,255,136,0.05) 60%, rgba(0,255,136,0.01));
+            box-shadow:
+                0 0 15px rgba(0,255,136,0.2),
+                inset 0 -4px 8px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(0,255,136,0.1);
+            position: relative;
+        }
+
+        .sphere-3d .sphere-body::after {
+            content: '';
+            position: absolute;
+            top: 18%;
+            left: 22%;
+            width: 25%;
+            height: 20%;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            filter: blur(2px);
+        }
+
+        .sphere-3d.enemy .sphere-body {
+            border-color: rgba(0,180,255,0.5);
+            background: radial-gradient(circle at 30% 30%, rgba(0,180,255,0.25), rgba(0,180,255,0.05) 60%, rgba(0,180,255,0.01));
+            box-shadow:
+                0 0 15px rgba(0,180,255,0.2),
+                inset 0 -4px 8px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(0,180,255,0.1);
+        }
+
+        .sphere-3d.enemy .sphere-body::after {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sphere-shadow {
+            position: absolute;
+            bottom: -6px;
+            left: 10%;
+            width: 80%;
+            height: 4px;
+            background: radial-gradient(ellipse, rgba(0,255,136,0.15), transparent 70%);
+            border-radius: 50%;
+            filter: blur(3px);
+        }
+
+        .sphere-3d.enemy .sphere-shadow {
+            background: radial-gradient(ellipse, rgba(0,180,255,0.15), transparent 70%);
+        }
+
+        /* 3D Pyramid Obstacles */
+        .pyramid-3d {
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+
+        .pyramid-3d svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .pyramid-3d .pyramid-face {
+            fill: none;
+            stroke: rgba(140,140,160,0.35);
+            stroke-width: 1;
+        }
+
+        .pyramid-3d .pyramid-fill {
+            fill: rgba(80,80,100,0.15);
+            stroke: rgba(140,140,160,0.3);
+            stroke-width: 0.8;
+        }
+
+        /* 3D Trajectory (laser beam) */
+        .trajectory-3d {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .trajectory-3d svg {
+            width: 100%; height: 100%;
+            overflow: visible;
+        }
+
+        .trajectory-3d .traj-path {
+            fill: none;
+            stroke: var(--neon-green);
+            stroke-width: 2;
+            stroke-dasharray: 6 3;
+            filter: drop-shadow(0 0 6px rgba(0,255,136,0.6)) drop-shadow(0 0 12px rgba(0,255,136,0.3));
+            animation: trajDash 1.5s linear infinite;
+        }
+
+        .trajectory-3d .traj-glow {
+            fill: none;
+            stroke: var(--neon-green);
+            stroke-width: 5;
+            opacity: 0.15;
+            filter: blur(3px);
+        }
+
+        @keyframes trajDash {
+            to { stroke-dashoffset: -18; }
+        }
+
+        /* Bottom bar */
+        .mockup-bottom {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-top: 1px solid var(--glass-border);
+            gap: 8px;
+            font-size: 8px;
+        }
+
+        .mockup-hp {
+            width: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .mockup-hp .hp-bar {
+            width: 100%;
+            height: 4px;
+            background: #3a1115;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .mockup-hp .hp-fill {
+            width: 67%;
+            height: 100%;
+            background: var(--neon-red);
+            box-shadow: 0 0 6px var(--neon-red);
+        }
+
+        .mockup-hp .hp-text { color: var(--neon-red); font-size: 7px; }
+
+        .mockup-formula {
+            flex: 1;
+            padding: 4px 8px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--neon-blue);
+            font-size: 8px;
+            font-family: inherit;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .mockup-presets {
+            display: flex;
+            gap: 3px;
+        }
+
+        .preset-card {
+            width: 28px;
+            height: 28px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .preset-card svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .preset-card svg path {
+            fill: none;
+            stroke: var(--text-dim);
+            stroke-width: 1;
+        }
+
+        /* =================== LEVEL SELECT MOCKUP =================== */
+        .level-mockup {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .level-mockup .lm-header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .level-mockup .lm-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .level-mockup .lm-header p {
+            font-size: 8px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .level-btn {
+            aspect-ratio: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .level-btn.completed {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .level-btn.completed::after {
+            content: '✓';
+            position: absolute;
+            font-size: 8px;
+            top: 2px;
+            right: 4px;
+        }
+
+        .level-btn.current {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            animation: levelPulse 2s infinite;
+        }
+
+        @keyframes levelPulse {
+            0%, 100% { box-shadow: 0 0 0 rgba(0,180,255,0); }
+            50% { box-shadow: 0 0 12px rgba(0,180,255,0.3); }
+        }
+
+        .level-btn.locked {
+            opacity: 0.35;
+            color: var(--text-dim);
+        }
+
+        .level-btn.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 8px;
+            bottom: 2px;
+        }
+
+        .level-tooltip {
+            max-width: 300px;
+            margin: 16px auto 0;
+            padding: 6px 12px;
+            background: var(--surface);
+            border: 1px solid var(--neon-blue);
+            border-radius: 4px;
+            font-size: 8px;
+            color: var(--text-dim);
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        /* =================== FEATURES =================== */
+        .features {
+            padding: 100px 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+
+        .feature-card {
+            padding: 32px 24px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--neon-green);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: var(--neon-green);
+        }
+
+        .feature-card p {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+
+        /* =================== FORMULA SHOWCASE =================== */
+        .formula-showcase {
+            padding: 80px 40px;
+            text-align: center;
+        }
+
+        .formula-cards {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .formula-card {
+            width: 150px;
+            padding: 16px 12px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .formula-card:hover {
+            border-color: var(--neon-green);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,255,136,0.12);
+        }
+
+        .formula-card canvas {
+            width: 110px;
+            height: 70px;
+            display: block;
+            margin: 0 auto 10px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .formula-card .formula-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* =================== CONTACTS / FOOTER =================== */
+        footer {
+            padding: 60px 40px 30px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .footer-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .footer-brand {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--neon-green);
+            letter-spacing: 2px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-links a:hover { color: var(--neon-green); }
+
+        .footer-links a svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .footer-copy {
+            width: 100%;
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        /* =================== SCROLLBAR =================== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-green); }
+
+        /* =================== ANIMATIONS =================== */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="hex-overlay"></div>
+
+<!-- =================== NAVIGATION =================== -->
+<nav>
+    <a class="logo" href="#">
+        <svg viewBox="0 0 32 32" fill="none">
+            <path d="M4 24L10 8L16 20L22 4L28 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="10" cy="8" r="2" fill="currentColor"/>
+            <circle cx="22" cy="4" r="2" fill="currentColor"/>
+        </svg>
+        GRAPHWAR
+    </a>
+    <ul class="nav-links">
+        <li><a href="#showcase">Screens</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#formulas">Formulas</a></li>
+        <li><a href="#contacts">Contacts</a></li>
+    </ul>
+    <a class="nav-play" href="GraphWarWeb/index.html">PLAY NOW</a>
+</nav>
+
+<!-- =================== HERO =================== -->
+<section class="hero">
+    <div class="hero-badge">[ OPEN ALPHA — v0.1.0 ]</div>
+    <h1>GRAPHWAR<br/>REMAKE</h1>
+    <p class="hero-sub">
+        Math-powered artillery combat. Enter a formula, watch the trajectory unfold, and destroy your opponents with the power of mathematics.
+    </p>
+
+    <div class="hero-formula-wrapper">
+        <div class="hero-canvas-container">
+            <canvas id="heroCanvas"></canvas>
+            <div class="hero-canvas-overlay" id="heroFormulaText">y = sin(x/10) * 50 + 0.01 * x²</div>
+        </div>
+        <div class="hero-input-row">
+            <input type="text" class="hero-formula-input" id="heroInput"
+                   placeholder="Enter formula: y = 0.05*x^2"
+                   value="sin(x/10) * 50 + 0.01 * x^2"/>
+            <button class="hero-draw-btn" onclick="HeroFormula.draw()">DRAW</button>
+        </div>
+        <div class="hero-presets">
+            <button class="hero-preset-chip" onclick="HeroFormula.set('0.05*x^2')">0.05*x²</button>
+            <button class="hero-preset-chip" onclick="HeroFormula.set('sin(x/10)*50')">sin(x/10)*50</button>
+            <button class="hero-preset-chip" onclick="HeroFormula.set('abs(sin(x/8))*40')">abs(sin(x/8))*40</button>
+            <button class="hero-preset-chip" onclick="HeroFormula.set('sqrt(x)*10')">sqrt(x)*10</button>
+            <button class="hero-preset-chip" onclick="HeroFormula.set('cos(x/15)*30')">cos(x/15)*30</button>
+            <button class="hero-preset-chip" onclick="HeroFormula.set('tan(x/20)*20')">tan(x/20)*20</button>
+        </div>
+    </div>
+
+    <div class="hero-buttons">
+        <a class="btn-hero primary" href="GraphWarWeb/index.html">LAUNCH GAME</a>
+        <a class="btn-hero secondary" href="#showcase">VIEW SCREENS</a>
+    </div>
+</section>
+
+<!-- =================== SCREENS SHOWCASE =================== -->
+<section class="showcase" id="showcase">
+    <div class="section-header">
+        <h2><span class="accent">//</span> INTERFACE</h2>
+        <p>[ DATA STREAM ACTIVE — RENDERING UI MODULES ]</p>
+    </div>
+
+    <div class="screen-grid">
+        <!-- Game Screen -->
+        <div class="screen-card fade-in">
+            <div class="screen-label"><span class="dot"></span> GAMEPLAY SCREEN</div>
+            <div class="screen-mockup game-mockup">
+                <div class="mockup-header">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <div class="menu-icon"><span></span><span></span><span></span></div>
+                        <span>REPLICATING BATTLESPACE</span>
+                    </div>
+                    <div class="mockup-players">
+                        <div class="player active"><span class="dot"></span> Player1 3/3</div>
+                        <div class="player"><span class="dot"></span> Player2</div>
+                        <div class="player"><span class="dot"></span> Player3</div>
+                    </div>
+                </div>
+                <div class="arena-3d-wrapper">
+                    <div class="arena-3d-scene">
+                        <div class="arena-3d-box">
+                            <!-- Room faces -->
+                            <div class="room-face room-back"></div>
+                            <div class="room-face room-floor"></div>
+                            <div class="room-face room-left"></div>
+                            <div class="room-face room-right"></div>
+                            <div class="room-face room-ceiling"></div>
+
+                            <!-- Wireframe edges -->
+                            <div class="room-edges">
+                                <svg viewBox="0 0 400 250" preserveAspectRatio="none">
+                                    <!-- Back face outline -->
+                                    <line x1="0" y1="0" x2="400" y2="0"/>
+                                    <line x1="400" y1="0" x2="400" y2="250"/>
+                                    <line x1="0" y1="250" x2="400" y2="250"/>
+                                    <line x1="0" y1="0" x2="0" y2="250"/>
+                                    <!-- Connecting edges to create depth -->
+                                    <line x1="0" y1="0" x2="30" y2="-15" style="stroke:rgba(0,255,136,0.1)"/>
+                                    <line x1="400" y1="0" x2="370" y2="-15" style="stroke:rgba(0,255,136,0.1)"/>
+                                    <line x1="400" y1="250" x2="370" y2="265" style="stroke:rgba(0,255,136,0.1)"/>
+                                    <line x1="0" y1="250" x2="30" y2="265" style="stroke:rgba(0,255,136,0.1)"/>
+                                </svg>
+                            </div>
+
+                            <!-- Coordinate Axes -->
+                            <div class="axes-3d">
+                                <div class="axis-line axis-x-line"></div>
+                                <div class="axis-line axis-y-line"></div>
+                                <div class="axis-line axis-z-line"></div>
+                                <div class="axis-label x">X</div>
+                                <div class="axis-label y">Y</div>
+                                <div class="axis-label z">Z</div>
+                                <div class="axis-tick" style="bottom:-1px;left:20px;">-12</div>
+                                <div class="axis-tick" style="bottom:-1px;left:32px;">-8</div>
+                                <div class="axis-tick" style="bottom:-1px;left:44px;">-4</div>
+                                <div class="axis-tick" style="bottom:16px;left:8px;">2</div>
+                                <div class="axis-tick" style="bottom:28px;left:4px;">4</div>
+                                <div class="axis-tick" style="bottom:40px;left:0px;">6</div>
+                            </div>
+
+                            <!-- 3D Trajectory -->
+                            <div class="trajectory-3d">
+                                <svg viewBox="0 0 400 250" preserveAspectRatio="none">
+                                    <path class="traj-glow" d="M 60 170 C 80 140, 110 100, 150 110 S 210 70, 250 100 S 300 50, 340 80"/>
+                                    <path class="traj-path" d="M 60 170 C 80 140, 110 100, 150 110 S 210 70, 250 100 S 300 50, 340 80"/>
+                                </svg>
+                            </div>
+
+                            <!-- 3D Player Spheres -->
+                            <div class="sphere-3d" style="width:28px;height:28px;bottom:38%;left:16%;">
+                                <div class="sphere-body"></div>
+                                <div class="sphere-shadow"></div>
+                            </div>
+                            <div class="sphere-3d enemy" style="width:22px;height:22px;bottom:32%;left:50%;">
+                                <div class="sphere-body"></div>
+                                <div class="sphere-shadow"></div>
+                            </div>
+                            <div class="sphere-3d enemy" style="width:18px;height:18px;bottom:36%;left:70%;">
+                                <div class="sphere-body"></div>
+                                <div class="sphere-shadow"></div>
+                            </div>
+
+                            <!-- 3D Pyramid Obstacles -->
+                            <div class="pyramid-3d" style="width:50px;height:55px;bottom:10%;left:32%;">
+                                <svg viewBox="0 0 50 55">
+                                    <polygon class="pyramid-fill" points="25,2 48,52 2,52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="48" y2="52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="2" y2="52"/>
+                                    <line class="pyramid-face" x1="2" y1="52" x2="48" y2="52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="36" y2="52" style="opacity:0.3"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="14" y2="52" style="opacity:0.3"/>
+                                </svg>
+                            </div>
+                            <div class="pyramid-3d" style="width:40px;height:45px;bottom:8%;left:52%;">
+                                <svg viewBox="0 0 50 55">
+                                    <polygon class="pyramid-fill" points="25,2 48,52 2,52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="48" y2="52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="2" y2="52"/>
+                                    <line class="pyramid-face" x1="2" y1="52" x2="48" y2="52"/>
+                                </svg>
+                            </div>
+                            <div class="pyramid-3d" style="width:45px;height:50px;bottom:12%;left:68%;">
+                                <svg viewBox="0 0 50 55">
+                                    <polygon class="pyramid-fill" points="25,2 48,52 2,52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="48" y2="52"/>
+                                    <line class="pyramid-face" x1="25" y1="2" x2="2" y2="52"/>
+                                    <line class="pyramid-face" x1="2" y1="52" x2="48" y2="52"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mockup-bottom">
+                    <div class="mockup-hp">
+                        <div style="font-size:7px;color:var(--text-dim);">Player1</div>
+                        <div class="hp-bar"><div class="hp-fill"></div></div>
+                        <div class="hp-text">67 / 100</div>
+                    </div>
+                    <div class="mockup-formula">f(x) = [sin(t) + t*cos(t/2)]</div>
+                    <div class="mockup-presets">
+                        <div class="preset-card"><svg viewBox="0 0 20 16"><path d="M2 14 Q10 2 18 14"/></svg></div>
+                        <div class="preset-card"><svg viewBox="0 0 20 16"><path d="M2 8 Q6 2 10 8 Q14 14 18 8"/></svg></div>
+                        <div class="preset-card"><svg viewBox="0 0 20 16"><path d="M2 12 Q6 4 10 12 Q14 4 18 12"/></svg></div>
+                        <div class="preset-card"><svg viewBox="0 0 20 16"><path d="M2 14 L10 2 L18 14"/></svg></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Select Screen -->
+        <div class="screen-card fade-in">
+            <div class="screen-label"><span class="dot"></span> MISSION SELECT</div>
+            <div class="screen-mockup level-mockup">
+                <div class="lm-header">
+                    <h4>SELECT MISSION</h4>
+                    <p>[ DATA STREAM ACTIVE — SELECT COORDINATES ]</p>
+                </div>
+                <div class="level-grid">
+                    <div class="level-btn completed">1</div>
+                    <div class="level-btn completed">2</div>
+                    <div class="level-btn current">3</div>
+                    <div class="level-btn locked">4</div>
+                    <div class="level-btn locked">5</div>
+                    <div class="level-btn locked">6</div>
+                    <div class="level-btn locked">7</div>
+                    <div class="level-btn locked">8</div>
+                </div>
+                <div class="level-tooltip">
+                    Level 3: Geometric Deadlock &nbsp;|&nbsp; Difficulty: Medium &nbsp;|&nbsp; Enemies: 3
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =================== FEATURES =================== -->
+<section class="features" id="features">
+    <div class="section-header">
+        <h2><span class="accent">//</span> FEATURES</h2>
+        <p>[ CORE SYSTEMS — MODULE OVERVIEW ]</p>
+    </div>
+
+    <div class="feature-grid">
+        <div class="feature-card fade-in">
+            <div class="feature-icon">∫</div>
+            <h3>MATH FORMULAS</h3>
+            <p>Enter any mathematical function — sin, cos, sqrt, power — and watch your projectile follow the exact trajectory. The math is the weapon.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">⚔</div>
+            <h3>AoE COMBAT</h3>
+            <p>Explosions deal area-of-effect damage. Position matters — closer to the epicenter means more destruction.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">🔄</div>
+            <h3>HOTSEAT MODE</h3>
+            <p>Pass-and-play local multiplayer. Take turns, share the screen, argue about formulas. Classic party game energy.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">🌐</div>
+            <h3>NETWORK PLAY</h3>
+            <p>Host a server or connect as a client. Real-time WebSocket multiplayer with JSON protocol. Challenge friends remotely.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">🎯</div>
+            <h3>TEAM DEATHMATCH</h3>
+            <p>Form teams, coordinate strategies, and dominate the battlefield. Team-based turns add tactical depth.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">⚡</div>
+            <h3>60 FPS ENGINE</h3>
+            <p>Smooth real-time rendering with HTML5 Canvas. Physics updates at 60 frames per second for responsive gameplay.</p>
+        </div>
+    </div>
+</section>
+
+<!-- =================== FORMULA PRESETS =================== -->
+<section class="formula-showcase" id="formulas">
+    <div class="section-header">
+        <h2><span class="accent">//</span> FORMULA PRESETS</h2>
+        <p>[ EXAMPLE TRAJECTORIES — CLICK TO EXPLORE ]</p>
+    </div>
+
+    <div class="formula-cards" id="formulaCards">
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('0.05*x^2')">
+            <canvas data-formula="0.05*x^2"></canvas>
+            <div class="formula-label">0.05 * x²</div>
+        </div>
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('sin(x/10)*25')">
+            <canvas data-formula="sin(x/10)*25"></canvas>
+            <div class="formula-label">sin(x/10) * 25</div>
+        </div>
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('abs(sin(x/8))*40')">
+            <canvas data-formula="abs(sin(x/8))*40"></canvas>
+            <div class="formula-label">abs(sin(x/8)) * 40</div>
+        </div>
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('sqrt(x)*10')">
+            <canvas data-formula="sqrt(x)*10"></canvas>
+            <div class="formula-label">sqrt(x) * 10</div>
+        </div>
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('cos(x/15)*30')">
+            <canvas data-formula="cos(x/15)*30"></canvas>
+            <div class="formula-label">cos(x/15) * 30</div>
+        </div>
+        <div class="formula-card fade-in" onclick="FormulaPresets.select('tan(x/20)*20')">
+            <canvas data-formula="tan(x/20)*20"></canvas>
+            <div class="formula-label">tan(x/20) * 20</div>
+        </div>
+    </div>
+</section>
+
+<!-- =================== CONTACTS / FOOTER =================== -->
+<footer id="contacts">
+    <div class="footer-inner">
+        <div class="footer-brand">GRAPHWAR REMAKE</div>
+        <div class="footer-links">
+            <a href="https://t.me/Dikii5ec" target="_blank">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                Telegram
+            </a>
+            <a href="https://github.com/9ikii5ec" target="_blank">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+                GitHub
+            </a>
+            <a href="https://github.com/ComRats" target="_blank">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+                ComRats
+            </a>
+            <a href="https://github.com/Kavun-Studio" target="_blank">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+                Kavun Studio
+            </a>
+        </div>
+        <div class="footer-copy">
+            © 2026 GRAPHWAR REMAKE — Built with mathematics and passion.
+        </div>
+    </div>
+</footer>
+
+<!-- =================== SCRIPTS =================== -->
+<script>
+// =================== MATH PARSER ===================
+const MathParser = {
+    _pos: 0, _expr: '', _xValue: 0,
+
+    evaluate(formula, x) {
+        this._expr = formula.replace(/\s+/g, '').toLowerCase();
+        this._xValue = x;
+        this._pos = 0;
+        const result = this._parseExpression();
+        if (this._pos < this._expr.length) throw new Error('Unexpected: ' + this._expr.slice(this._pos));
+        return result;
+    },
+
+    _parseExpression() {
+        let r = this._parseTerm();
+        while (this._pos < this._expr.length) {
+            const op = this._expr[this._pos];
+            if (op === '+' || op === '-') { this._pos++; r = op === '+' ? r + this._parseTerm() : r - this._parseTerm(); }
+            else break;
+        }
+        return r;
+    },
+
+    _parseTerm() {
+        let r = this._parsePower();
+        while (this._pos < this._expr.length) {
+            const op = this._expr[this._pos];
+            if (op === '*' || op === '/') { this._pos++; const right = this._parsePower(); r = op === '/' ? r / right : r * right; }
+            else break;
+        }
+        return r;
+    },
+
+    _parsePower() {
+        let r = this._parseUnary();
+        if (this._pos < this._expr.length && this._expr[this._pos] === '^') {
+            this._pos++; r = Math.pow(r, this._parseUnary());
+        }
+        return r;
+    },
+
+    _parseUnary() {
+        if (this._pos < this._expr.length && this._expr[this._pos] === '-') { this._pos++; return -this._parseUnary(); }
+        if (this._pos < this._expr.length && this._expr[this._pos] === '+') { this._pos++; return this._parseUnary(); }
+        return this._parsePrimary();
+    },
+
+    _parsePrimary() {
+        if (this._pos >= this._expr.length) throw new Error('Unexpected end');
+        if (this._expr[this._pos] === '(') { this._pos++; const r = this._parseExpression(); this._expect(')'); return r; }
+        if (this._isDigit(this._expr[this._pos]) || this._expr[this._pos] === '.') return this._parseNumber();
+        if (this._expr[this._pos] === 'x') { this._pos++; return this._xValue; }
+        if (this._matchKeyword('pi')) return Math.PI;
+        if (this._matchKeyword('e')) return Math.E;
+        const f = this._tryParseFunction();
+        if (f !== null) return f;
+        throw new Error('Unexpected: ' + this._expr[this._pos]);
+    },
+
+    _parseNumber() {
+        const s = this._pos;
+        while (this._pos < this._expr.length && (this._isDigit(this._expr[this._pos]) || this._expr[this._pos] === '.')) this._pos++;
+        return parseFloat(this._expr.slice(s, this._pos));
+    },
+
+    _matchKeyword(kw) {
+        if (this._pos + kw.length > this._expr.length) return false;
+        if (this._expr.slice(this._pos, this._pos + kw.length) !== kw) return false;
+        if (this._pos + kw.length < this._expr.length && this._isLetter(this._expr[this._pos + kw.length])) return false;
+        this._pos += kw.length;
+        return true;
+    },
+
+    _tryParseFunction() {
+        const funcs = ['sin','cos','tan','sqrt','abs','log','ln'];
+        for (const fn of funcs) {
+            if (this._pos + fn.length > this._expr.length) continue;
+            if (this._expr.slice(this._pos, this._pos + fn.length) !== fn) continue;
+            this._pos += fn.length; this._expect('('); const a = this._parseExpression(); this._expect(')');
+            if (fn === 'sin') return Math.sin(a);
+            if (fn === 'cos') return Math.cos(a);
+            if (fn === 'tan') return Math.tan(a);
+            if (fn === 'sqrt') return Math.sqrt(a);
+            if (fn === 'abs') return Math.abs(a);
+            if (fn === 'log') return Math.log10(a);
+            if (fn === 'ln') return Math.log(a);
+        }
+        return null;
+    },
+
+    _expect(c) {
+        if (this._pos >= this._expr.length || this._expr[this._pos] !== c) throw new Error('Expected ' + c);
+        this._pos++;
+    },
+
+    _isDigit(ch) { return ch >= '0' && ch <= '9'; },
+    _isLetter(ch) { return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'); }
+};
+
+// =================== DRAW FORMULA ON CANVAS ===================
+function drawFormula(canvas, formula, color = '#00ff88', lineWidth = 2, showGlow = true) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,255,136,0.06)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Axis line (bottom)
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H - 1); ctx.lineTo(W, H - 1); ctx.stroke();
+
+    if (!formula || !formula.trim()) return;
+
+    // Evaluate formula
+    const points = [];
+    const padding = 10;
+    const plotW = W - padding * 2;
+    const plotH = H - padding * 2;
+    let minY = Infinity, maxY = -Infinity;
+
+    for (let px = 0; px <= plotW; px += 1) {
+        const xVal = (px / plotW) * 100;
+        try {
+            const yVal = MathParser.evaluate(formula, xVal);
+            if (isFinite(yVal)) {
+                points.push({ px: padding + px, rawY: yVal });
+                if (yVal < minY) minY = yVal;
+                if (yVal > maxY) maxY = yVal;
+            }
+        } catch {}
+    }
+
+    if (points.length < 2 || !isFinite(minY) || !isFinite(maxY) || minY === maxY) return;
+
+    // Map Y
+    const rangeY = maxY - minY || 1;
+    for (const pt of points) {
+        pt.py = padding + plotH - ((pt.rawY - minY) / rangeY) * plotH;
+    }
+
+    // Glow layer
+    if (showGlow) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth + 4;
+        ctx.globalAlpha = 0.15;
+        ctx.filter = 'blur(6px)';
+        ctx.beginPath();
+        ctx.moveTo(points[0].px, points[0].py);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].px, points[i].py);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Main line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(points[0].px, points[0].py);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].px, points[i].py);
+    ctx.stroke();
+}
+
+// =================== HERO FORMULA INTERACTIVE ===================
+const HeroFormula = {
+    canvas: null,
+    ctx: null,
+    input: null,
+    overlay: null,
+    animFrame: null,
+    currentFormula: 'sin(x/10)*50+0.01*x^2',
+
+    init() {
+        this.canvas = document.getElementById('heroCanvas');
+        this.input = document.getElementById('heroInput');
+        this.overlay = document.getElementById('heroFormulaText');
+        if (!this.canvas || !this.input) return;
+
+        this._resize();
+        window.addEventListener('resize', () => this._resize());
+
+        this.input.addEventListener('input', () => this._liveDraw());
+        this.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.draw(); });
+
+        this.draw();
+    },
+
+    _resize() {
+        const container = this.canvas.parentElement;
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = container.clientWidth * dpr;
+        this.canvas.height = container.clientHeight * dpr;
+        this.canvas.getContext('2d').scale(dpr, dpr);
+        this.canvas.style.width = container.clientWidth + 'px';
+        this.canvas.style.height = container.clientHeight + 'px';
+        this.draw();
+    },
+
+    draw() {
+        const formula = this.input.value.trim();
+        this.currentFormula = formula;
+        this.overlay.textContent = formula ? 'y = ' + formula : '';
+        drawFormula(this.canvas, formula, '#00ff88', 2.5, true);
+    },
+
+    _liveDraw() {
+        if (this.animFrame) cancelAnimationFrame(this.animFrame);
+        this.animFrame = requestAnimationFrame(() => this.draw());
+    },
+
+    set(formula) {
+        this.input.value = formula;
+        this.draw();
+        this.input.focus();
+    }
+};
+
+// =================== FORMULA PRESETS CARDS ===================
+const FormulaPresets = {
+    init() {
+        document.querySelectorAll('.formula-card canvas').forEach(canvas => {
+            const formula = canvas.dataset.formula;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = 110 * dpr;
+            canvas.height = 70 * dpr;
+            canvas.getContext('2d').scale(dpr, dpr);
+            drawFormula(canvas, formula, '#00ff88', 2, true);
+        });
+    },
+
+    select(formula) {
+        HeroFormula.set(formula);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+};
+
+// =================== SCROLL ANIMATIONS ===================
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Nav highlight
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+    nav.style.borderBottomColor = window.scrollY > 100
+        ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.08)';
+});
+
+// Init all
+document.addEventListener('DOMContentLoaded', () => {
+    HeroFormula.init();
+    FormulaPresets.init();
+});
+</script>
+
+</body>
+</html>
