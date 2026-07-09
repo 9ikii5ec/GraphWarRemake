@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>NCalc.Core</id>
+    <version>6.4.0</version>
+    <authors>Sebastien Ros and contributors</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>NCalc.png</icon>
+    <readme>README.md</readme>
+    <description>Assembly with the core logic of NCalc.</description>
+    <copyright>Sebastien Ros and contributors</copyright>
+    <repository type="git" commit="ef2728fa9addedbffe7e940c9790b4c81aa53c81" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="NCalc.Parser" version="6.4.0" exclude="Build,Analyzers" />
+        <dependency id="ExtendedNumerics.BigDecimal" version="3003.0.0.346" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.7" exclude="Build,Analyzers" />
+        <dependency id="Parlot" version="1.5.7" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETFramework4.6.2">
+        <dependency id="NCalc.Parser" version="6.4.0" exclude="Build,Analyzers" />
+        <dependency id="ExtendedNumerics.BigDecimal" version="3003.0.0.346" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.CSharp" version="4.7.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.7" exclude="Build,Analyzers" />
+        <dependency id="NETStandard.Library" version="2.0.3" exclude="Build,Analyzers" />
+        <dependency id="Parlot" version="1.5.7" exclude="Build,Analyzers" />
+        <dependency id="System.Collections.Immutable" version="10.0.7" exclude="Build,Analyzers" />
+        <dependency id="System.ValueTuple" version="4.6.2" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net8.0">
+        <dependency id="NCalc.Parser" version="6.4.0" exclude="Build,Analyzers" />
+        <dependency id="ExtendedNumerics.BigDecimal" version="3003.0.0.346" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.7" exclude="Build,Analyzers" />
+        <dependency id="Parlot" version="1.5.7" exclude="Build,Analyzers" />
+        <dependency id="System.Collections.Immutable" version="10.0.7" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="NCalc.Parser" version="6.4.0" exclude="Build,Analyzers" />
+        <dependency id="ExtendedNumerics.BigDecimal" version="3003.0.0.346" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.CSharp" version="4.7.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.7" exclude="Build,Analyzers" />
+        <dependency id="Parlot" version="1.5.7" exclude="Build,Analyzers" />
+        <dependency id="System.Collections.Immutable" version="10.0.7" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
